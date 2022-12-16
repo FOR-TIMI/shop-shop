@@ -1,22 +1,42 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import { useQuery } from '@apollo/client';
 
 import ProductItem from '../ProductItem';
 import { QUERY_PRODUCTS } from '../../utils/queries';
 import spinner from '../../assets/spinner.gif';
 
-function ProductList({ currentCategory }) {
+import { useStoreContext } from '../../utils/GlobalState';
+import { UPDATE_PRODUCTS } from '../../utils/actions';
+
+function ProductList() {
+
+  //Global state
+  const [state,dispatch] = useStoreContext()
+
+  const { products } = state;
+  
+  // graphQL API data
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
-  const products = data?.products || [];
+  useEffect( () => {
+    if(data){
+      dispatch({
+        type : UPDATE_PRODUCTS,
+        products: data.products
+      })
+    }
+  },[data,dispatch])
+
+
+  // const products = data?.products || [];
 
   function filterProducts() {
-    if (!currentCategory) {
-      return products;
+    if (!state.currentCategory) {
+      return state.products;
     }
 
-    return products.filter(
-      (product) => product.category._id === currentCategory
+    return state.products.filter(
+      (product) => product.category._id === state.currentCategory
     );
   }
 
