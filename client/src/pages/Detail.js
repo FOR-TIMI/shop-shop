@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useQuery } from "@apollo/client";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
-import { QUERY_PRODUCTS } from '../utils/queries';
-import spinner from '../assets/spinner.gif';
+import spinner from "../assets/spinner.gif";
+import { QUERY_PRODUCTS } from "../utils/queries";
 
-import { useStoreContext } from '../utils/GlobalState';
-import { UPDATE_PRODUCTS } from '../utils/actions';
+import { useStoreContext } from "../utils/GlobalState";
+import { REMOVE_FROM_CART, UPDATE_PRODUCTS } from "../utils/actions";
 
 function Detail() {
   //Global state
-  const [state, dispatch] = useStoreContext()
+  const [state, dispatch] = useStoreContext();
 
-  const { products } = state
+  const { products } = state;
 
   const { id } = useParams();
 
@@ -20,17 +20,25 @@ function Detail() {
 
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
+  const isRemoveButton = !state.cart.find((p) => p._id === currentProduct._id);
+
+  const handleRemoveFromCart = () => {
+    dispatch({
+      type: REMOVE_FROM_CART,
+      _id: currentProduct._id,
+    });
+  };
+
   useEffect(() => {
     if (products.length) {
       setCurrentProduct(products.find((product) => product._id === id));
-    }
-    else if(data){
+    } else if (data) {
       dispatch({
         type: UPDATE_PRODUCTS,
-        products: data.products
-      })
+        products: data.products,
+      });
     }
-  }, [data,dispatch,products, id]);
+  }, [data, dispatch, products, id]);
 
   return (
     <>
@@ -43,9 +51,11 @@ function Detail() {
           <p>{currentProduct.description}</p>
 
           <p>
-            <strong>Price:</strong>${currentProduct.price}{' '}
+            <strong>Price:</strong>${currentProduct.price}{" "}
             <button>Add to Cart</button>
-            <button>Remove from Cart</button>
+            {!isRemoveButton && (
+              <button onClick={handleRemoveFromCart}>Remove from Cart</button>
+            )}
           </p>
 
           <img
