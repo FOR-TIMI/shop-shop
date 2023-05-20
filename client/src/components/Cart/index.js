@@ -1,15 +1,29 @@
+import { useLazyQuery } from "@apollo/client";
+import { loadStripe } from "@stripe/stripe-js";
 import React, { useEffect } from "react";
-import Auth from "../../utils/auth";
-import CartItem from "../CartItem";
-
 import { useStoreContext } from "../../utils/GlobalState";
 import { ADD_MULTIPLE_TO_CART, TOGGLE_CART } from "../../utils/actions";
+import Auth from "../../utils/auth";
 import { idbPromise } from "../../utils/helpers";
-
+import { QUERY_CHECKOUT } from "../../utils/queries";
+import CartItem from "../CartItem";
 import "./style.css";
+
+const { STRIPE_PK } = require("../../env");
+
+const stripePromise = loadStripe(STRIPE_PK);
 
 const Cart = () => {
   const [state, dispatch] = useStoreContext();
+  const [getCheckout, { data }] = useLazyQuery(QUERY_CHECKOUT);
+
+  useEffect(() => {
+    if (data) {
+      stripePromise.then((res) => {
+        res.redirectToCheckout({ sessionId: data.checkout.session });
+      });
+    }
+  }, [data]);
 
   useEffect(() => {
     async function getCart() {
@@ -22,22 +36,31 @@ const Cart = () => {
     }
   }, [state.cart.length, dispatch]);
 
-  //To open and close cart
-  const toggleCart = () => dispatch({ type: TOGGLE_CART });
+  function toggleCart() {
+    dispatch({ type: TOGGLE_CART });
+  }
 
-  //To calculate total price based on the cart
-  const calculateTotal = () => {
-    const { cart } = state;
-    const price = cart
-      .reduce(
-        (total, currentProduct) =>
-          (total += currentProduct.price * currentProduct.purchaseQuantity),
-        0
-      )
-      .toFixed(2);
+  function calculateTotal() {
+    let sum = 0;
+    state.cart.forEach((item) => {
+      sum += item.price * item.purchaseQuantity;
+    });
+    return sum.toFixed(2);
+  }
 
-    return price;
-  };
+  function submitCheckout() {
+    const productIds = [];
+
+    state.cart.forEach((item) => {
+      for (let i = 0; i < item.purchaseQuantity; i++) {
+        productIds.push(item._id);
+      }
+    });
+
+    getCheckout({
+      variables: { products: productIds },
+    });
+  }
 
   if (!state.cartOpen) {
     return (
@@ -60,10 +83,12 @@ const Cart = () => {
           {state.cart.map((item) => (
             <CartItem key={item._id} item={item} />
           ))}
+
           <div className="flex-row space-between">
             <strong>Total: ${calculateTotal()}</strong>
+
             {Auth.loggedIn() ? (
-              <button>Checkout</button>
+              <button onClick={submitCheckout}>Checkout</button>
             ) : (
               <span>(log in to check out)</span>
             )}
