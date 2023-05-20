@@ -48,7 +48,7 @@ export const reducer = (state, action) => {
 
     case REMOVE_FROM_CART:
       const newCartState = state.cart.filter(
-        (product) => product._id != action._id
+        (product) => product._id !== action._id
       );
       return {
         ...state,
