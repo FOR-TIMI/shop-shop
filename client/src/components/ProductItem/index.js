@@ -7,18 +7,34 @@ import {
   UPDATE_CART_QUANTITY,
   UPDATE_PRODUCTS,
 } from "../../utils/actions";
-import { pluralize } from "../../utils/helpers";
+import { idbPromise, pluralize } from "../../utils/helpers";
 
 function ProductItem(item) {
   const { image, name, _id, price, quantity } = item;
 
   const [state, dispatch] = useStoreContext();
 
+  const { cart } = state;
+
   const addToCart = () => {
-    dispatch({
-      type: ADD_TO_CART,
-      product: { ...item, purchaseQuantity: 1 },
-    });
+    const itemInCart = cart.find((cartItem) => cartItem._id === _id);
+    if (itemInCart) {
+      dispatch({
+        type: UPDATE_CART_QUANTITY,
+        _id: _id,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1,
+      });
+      idbPromise("cart", "put", {
+        ...itemInCart,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1,
+      });
+    } else {
+      dispatch({
+        type: ADD_TO_CART,
+        product: { ...item, purchaseQuantity: 1 },
+      });
+      idbPromise("cart", "put", { ...item, purchaseQuantity: 1 });
+    }
   };
 
   return (
