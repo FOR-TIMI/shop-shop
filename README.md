@@ -1,3 +1,3 @@
 # shop-shop
 
-A PWA that allows users to purchase items
+A Progressive web application that allows users to purchase items
